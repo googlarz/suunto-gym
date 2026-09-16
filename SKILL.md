@@ -39,9 +39,10 @@ Two separate axes, don't conflate them:
 ## Split
 
 The split lives in `PROGRAM.md`'s frontmatter — read it there, don't assume
-one. (Current mesocycle: 6-day PPL — PUSH A/B, PULL A/B, LEGS A/B, weekly
-order in the frontmatter, Sun rest.) Watch Guides are titled by session name
-from `PROGRAM.md` (e.g. "PUSH A"), never by day-of-week.
+one (Upper/Mid/Legs, PPL, whatever the user and Claude agreed on during
+setup). Watch Guides are titled by session name from `PROGRAM.md` (e.g.
+"PUSH A" or "LEGS"), never by day-of-week — which day maps to which session
+varies week to week.
 
 ## Watch-safe exercise names
 
@@ -170,9 +171,9 @@ progression, a deload, an exercise swap).
 3. Show today's session: exercise, sets×reps, target weight (last logged weight
    + progression rule if criteria met, otherwise same weight).
 4. Include the session's warmup and cool-down from `gym/warmup-cooldown.md`
-   (keyed by session name), plus its standing BP gate line. If the user wants
-   it on their phone ("wyślij na Signala"), send the session + warmup/cooldown
-   via the signal MCP's `send_note_to_self`.
+   (keyed by session name), plus any standing pre-session check the user has
+   set up there. If the user wants it on their phone, send the session +
+   warmup/cooldown via the signal MCP's `send_note_to_self`.
 5. If the user says an exercise/machine/rack isn't available (gym's busy,
    traveling, home setup missing something): substitute a same-muscle-group
    alternative on the spot — don't just drop the exercise. Log the swap in
