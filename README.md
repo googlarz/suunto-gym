@@ -16,8 +16,9 @@ unified with your broader health record via
 ## What it needs
 
 - [suunto-mcp](https://github.com/googlarz/suunto-mcp) — connects your Suunto
-  watch to Claude, and provides `push_workout_guide` (puts your plan on your
-  wrist) and `get_recovery`/`get_sleep` (the recovery-gating data)
+  watch to Claude, and provides `push_strength_guide` (puts your plan on your
+  wrist, one watch step per set plus rest) and `get_recovery`/`get_sleep`
+  (the recovery-gating data)
 - [health-skill](https://github.com/googlarz/health-skill) — the person
   workspace this skill stores its data in, so training stays unified with
   injuries, conditions, and the rest of your health record
@@ -64,10 +65,12 @@ Full interactive version (fonts, animation, collapsible cards): download
 ## Watch sync
 
 Plan → watch is a real, working loop through the SuuntoPlus Guide API — see
-suunto-mcp's `push_workout_guide` docs for exactly how, and its one honest
+suunto-mcp's `push_strength_guide` docs for exactly how, and its one honest
 limitation (no live push; delivery rides your phone's normal Suunto sync).
-Watch → Claude comes back via lap timestamps in the synced workout, which
-`/suunto-gym log` cross-checks against what was planned.
+Each set and rest period is its own step on the watch, so Watch → Claude
+comes back via a per-set/per-rest lap pattern in the synced workout, which
+`/suunto-gym log` cross-checks against what was planned to reconstruct
+per-set duration and effort.
 
 ## Boundaries
 

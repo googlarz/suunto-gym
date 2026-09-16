@@ -55,7 +55,8 @@ Everything lives inside the user's health-skill person folder:
 │                                                        written via care_workspace.py
 └── gym/
     ├── PROGRAM.md              # current mesocycle: Upper/Mid/Legs, exercises/sets/reps/kg — source of truth
-    └── plan-week.md            # this week's 3 sessions, exact text pushed to the watch
+    └── plan-week.md            # this week's 3 sessions: display text plus the sets/restSec
+                                 # breakdown per exercise pushed to the watch
 ```
 
 `care_workspace.py log-workout` and `run-summary` already parse freeform text,
@@ -109,17 +110,24 @@ Run whenever the mesocycle's next week changes (new working weights after
 progression, a deload, an exercise swap).
 
 1. Update `PROGRAM.md` with the new numbers/exercises for all three sessions.
-2. Write `gym/plan-week.md` with the exact display text per exercise per
-   session — one line each, e.g. `Bench Press 15° — 60kg 3x10`. This is
-   exactly what shows on the watch, so keep it short and unambiguous.
-3. Call `push_workout_guide` **three times**, once per session, each as its
+2. Write `gym/plan-week.md` with, per exercise per session: the display text
+   (e.g. `Bench Press 15° — 60kg 3x10`) plus the structured `sets` count and
+   `restSec` between sets. The display text is short and unambiguous; `sets`/
+   `restSec` are what let the watch build one step per set and one step per
+   rest period.
+3. Call `push_strength_guide` **three times**, once per session, each as its
    own Guide:
    - title: `"UPPER"`, `"MID"`, `"LEGS"` (plain, so they're distinguishable
      at a glance in the watch's Guide list — no day names)
    - date: today's date for all three (they're not day-locked; the user picks
      which one to do)
-   - exercises: the list from `plan-week.md` for that session, `{name, detail}`
-     pairs — `detail` is the pre-formatted `"60kg 3x10"` style string
+   - exercises: the list from `plan-week.md` for that session, `{name, detail,
+     sets, restSec}` — `detail` is the pre-formatted `"60kg 3x10"` style
+     string, `sets` is the number of sets, `restSec` is rest between sets in
+     seconds. The tool expands this into one watch step per set (auto-lapped
+     at start, advanced by the user's lap-button press at the end) and one
+     step per rest period (auto-advances after `restSec` seconds, no button
+     press needed).
 4. Tell the user the sessions will appear on the watch after their phone's
    next normal Suunto app sync — no manual pinning needed in testing. If one
    doesn't show up, they can open the Suunto app > their watch > SuuntoPlus
@@ -184,12 +192,32 @@ when present) plus `PROGRAM.md`'s progression rules:
 
 ## Watch sync
 
-Plan → watch: `push_workout_guide` (see `/suunto-gym plan` above), one Guide per
-session. Watch → Claude: no explicit done/skip is returned by the Guide API —
-only lap-button presses (`manualLap`), one per exercise step, land in the
-synced workout's data. `/suunto-gym log` cross-checks the lap count/timing against
-that session's `plan-week.md` to infer what was actually completed; ask the
-user to confirm rather than assuming a lap always means "done as written."
+Plan → watch: `push_strength_guide` (see `/suunto-gym plan` above), one Guide per
+session, one watch step per set plus one per rest period.
+
+Watch → Claude: no explicit done/skip is returned by the Guide API — only
+laps (`manualLap`) land in the synced workout's data, and they now come in a
+per-set pattern, not one per exercise:
+- Each set step auto-logs a lap the instant it starts.
+- The user's lap-button press at the end of that set advances to the rest
+  step, and that press is itself logged as a lap (marking set-end/rest-start).
+- Rest steps auto-advance after `restSec` with no button press, so they don't
+  add a lap of their own — the next set step's auto-lap marks rest-end/
+  next-set-start.
+- Net: roughly two laps per set (one auto at start, one from the press at
+  end), and no separate lap for rest.
+
+`/suunto-gym log` reconstructs what happened from this stream:
+1. Group the synced workout's laps by exercise, using each exercise's `sets`
+   count from that session's `plan-week.md` to know how many set/rest lap
+   pairs to expect.
+2. Within each exercise's group, match the auto-lap/press-lap alternation to
+   reconstruct actual per-set duration, and use `get_workout_fit`'s HR
+   samples windowed by lap timestamps to read per-set effort.
+3. If the lap count for an exercise doesn't cleanly divide into the expected
+   set/rest pairs (skipped exercise, extra laps, watch not synced mid-session),
+   don't guess — ask the user to confirm what was actually done for that
+   exercise rather than assuming the lap stream matches the plan.
 
 ## Boundaries
 
