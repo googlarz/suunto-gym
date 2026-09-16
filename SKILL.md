@@ -149,11 +149,12 @@ progression, a deload, an exercise swap).
      which one to do)
    - exercises: the list from `plan-week.md` for that session, `{name, detail,
      sets, restSec}` — `detail` is the pre-formatted `"60kg 3x10"` style
-     string, `sets` is the number of sets, `restSec` is rest between sets in
-     seconds. The tool expands this into one watch step per set (auto-lapped
-     at start, advanced by the user's lap-button press at the end) and one
-     step per rest period (auto-advances after `restSec` seconds, no button
-     press needed).
+     string, `sets` is the number of sets, `restSec` is the target rest
+     between sets in seconds (shown as a label, not enforced). The tool
+     expands this into one watch step per set (lap-button press when the
+     set's done) and one step per rest — a live count-up stopwatch, not a
+     countdown, also advanced by a lap press when the user's ready to go
+     again.
 4. Tell the user the sessions will appear on the watch after their phone's
    next normal Suunto app sync — no manual pinning needed in testing. If one
    doesn't show up, they can open the Suunto app > their watch > SuuntoPlus
@@ -227,23 +228,24 @@ session, one watch step per set plus one per rest period.
 
 Watch → Claude: no explicit done/skip is returned by the Guide API — only
 laps (`manualLap`) land in the synced workout's data, and they now come in a
-per-set pattern, not one per exercise:
-- Each set step auto-logs a lap the instant it starts.
-- The user's lap-button press at the end of that set advances to the rest
-  step, and that press is itself logged as a lap (marking set-end/rest-start).
-- Rest steps auto-advance after `restSec` with no button press, so they don't
-  add a lap of their own — the next set step's auto-lap marks rest-end/
-  next-set-start.
-- Net: roughly two laps per set (one auto at start, one from the press at
-  end), and no separate lap for rest.
+per-set pattern, not one per exercise. Both set and rest steps advance on a
+lap-button press — nothing auto-advances — and each press is itself logged
+as a lap by the watch, so:
+- The lap-press that ends a set marks set-end/rest-start (rest starts as a
+  live count-up stopwatch, not a countdown, so the user paces it themselves).
+- The lap-press that ends that rest marks rest-end/next-set-start.
+- Net: one lap at every set/rest boundary, alternating set-end and rest-end
+  laps through the whole session.
 
 `/suunto-gym log` reconstructs what happened from this stream:
 1. Group the synced workout's laps by exercise, using each exercise's `sets`
    count from that session's `plan-week.md` to know how many set/rest lap
    pairs to expect.
-2. Within each exercise's group, match the auto-lap/press-lap alternation to
-   reconstruct actual per-set duration, and use `get_workout_fit`'s HR
-   samples windowed by lap timestamps to read per-set effort.
+2. Within each exercise's group, laps alternate set-end and rest-end
+   (set 1 ends → rest starts → rest ends → set 2 starts → ...) — pair them
+   up in that order to reconstruct actual per-set and per-rest duration, and
+   use `get_workout_fit`'s HR samples windowed by lap timestamps to read
+   per-set effort and per-rest recovery.
 3. If the lap count for an exercise doesn't cleanly divide into the expected
    set/rest pairs (skipped exercise, extra laps, watch not synced mid-session),
    don't guess — ask the user to confirm what was actually done for that
