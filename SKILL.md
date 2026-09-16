@@ -44,16 +44,28 @@ setup). Watch Guides are titled by session name from `PROGRAM.md` (e.g.
 "PUSH A" or "LEGS"), never by day-of-week — which day maps to which session
 varies week to week.
 
-## Watch-safe exercise names
+## Watch display
 
-`push_strength_guide`'s set step shows the exercise name and the set detail
-(`"60kg 3x10"`) as two separate text fields, side by side on a small screen.
-The tool hard-truncates each at 54 characters, but that's a last-resort
-safety cap, not a target — a name that gets cut there is cut mid-word, and
-two long fields shown together push each other off screen before either
-field limit is even reached. Write names and details watch-safe at the
-source, in `PROGRAM.md` and `plan-week.md`, so nothing downstream ever
-relies on the truncation:
+`push_strength_guide` lays out every step to use the watch's small screen
+optimally — 3 fields per step (well under the 4-5 the schema supports, and
+inside the "fewer fields when intense" guidance for something you're
+glancing at mid-lift), ordered by priority (the schema gives the first
+field the best placement/biggest size):
+
+- **Set step**: exercise name → target (`"60kg 3x10"`) → live heart rate.
+  What to do comes first; HR is a glance, not the thing being acted on.
+- **Rest step**: stopwatch or countdown (see below) → live heart rate →
+  target rest + what's next as text (lowest priority — gets cropped first
+  if the screen is tight, which is fine since it's the least critical part).
+
+### Text budget
+
+The tool hard-truncates name/detail text at 54 characters, but that's a
+last-resort safety cap, not a target — a name that gets cut there is cut
+mid-word, and two long fields shown together push each other off screen
+before either field limit is even reached. Write names and details
+watch-safe at the source, in `PROGRAM.md` and `plan-week.md`, so nothing
+downstream ever relies on the truncation:
 
 - Exercise name: aim for **≤24 characters**. Abbreviate consistently — `BB`
   (barbell), `DB` (dumbbell), `15°` not "15 degrees", drop redundant words
@@ -66,6 +78,28 @@ relies on the truncation:
   distinguishing two grip variants), shorten it anyway and keep the full
   name only in `PROGRAM.md`'s prose notes — the watch never needs the long
   form, only Claude reading `PROGRAM.md` does.
+
+### What's configurable
+
+`push_strength_guide` takes two optional params, passed through
+`/suunto-gym plan` step 3. Defaults are the recommended choice for most
+users — only override when the user explicitly asks:
+
+- **`restMode`** — `"stopwatch"` (default, recommended): rest counts up,
+  advances on a lap press, the user paces it themselves by feel/HR, not a
+  clock. `"countdown"`: rest counts down from `restSec` and auto-advances
+  on its own, no lap needed — offer this if the user wants a hard timer
+  instead of self-pacing.
+- **`lapGranularity`** — `"perSet"` (default, **recommended for AI
+  analysis**): one step per set plus one per rest, so laps bound every
+  individual set and rest — this is what makes per-set HR/duration readable
+  from the synced workout at all, and what `/suunto-gym log`'s lap
+  cross-check (below) depends on. `"perExercise"`: one step per whole
+  exercise instead (all sets folded into the `detail` string, e.g.
+  `"60kg 3x10"`), like `push_workout_guide` — a shorter Guide list to
+  scroll through, but only one lap per exercise, so per-set analysis is
+  lost. Offer this only if the user explicitly prioritizes a shorter list
+  over per-set data.
 
 ## Data model
 
@@ -109,7 +143,7 @@ a fixed ~40-exercise bank and isn't specific enough for real strength work.
    split agreed in the interview, with starting weights, sets,
    reps, and a progression rule per lift (e.g. "+2.5kg when all sets hit top
    of rep range for 2 sessions running"). Name exercises watch-safe from the
-   start — see "Watch-safe exercise names" below. Before finalizing any exercise,
+   start — see "Watch display" → "Text budget" above. Before finalizing any exercise,
    cross-check it against the injuries/conditions in `HEALTH_PROFILE.json`
    using the same broad categories health-skill's own exercise bank uses
    (shoulder, lower back, knee, etc. — see `contra` fields in
@@ -137,10 +171,10 @@ progression, a deload, an exercise swap).
 2. Write `gym/plan-week.md` with, per exercise per session: the display text
    (e.g. `Bench Press 15° — 60kg 3x10`) plus the structured `sets` count and
    `restSec` between sets. Keep the name and the `"60kg 3x10"`-style detail
-   within the watch-safe budget ("Watch-safe exercise names" above) — this
-   is the text that actually lands on screen, so don't let it drift long
-   over a mesocycle. `sets`/`restSec` are what let the watch build one step
-   per set and one step per rest period.
+   within the watch-safe budget ("Watch display" → "Text budget" above) —
+   this is the text that actually lands on screen, so don't let it drift
+   long over a mesocycle. `sets`/`restSec` are what let the watch build one
+   step per set and one step per rest period.
 3. Call `push_strength_guide` once per session in the split, each as its
    own Guide:
    - title: the session name from `PROGRAM.md` (e.g. `"PUSH A"`) — plain, so
@@ -150,11 +184,11 @@ progression, a deload, an exercise swap).
    - exercises: the list from `plan-week.md` for that session, `{name, detail,
      sets, restSec}` — `detail` is the pre-formatted `"60kg 3x10"` style
      string, `sets` is the number of sets, `restSec` is the target rest
-     between sets in seconds (shown as a label, not enforced). The tool
-     expands this into one watch step per set (lap-button press when the
-     set's done) and one step per rest — a live count-up stopwatch, not a
-     countdown, also advanced by a lap press when the user's ready to go
-     again.
+     between sets in seconds (shown as a label, not enforced by default).
+   - `restMode`/`lapGranularity`: omit both to get the recommended defaults
+     (stopwatch rest, one lap per set — see "Watch display" → "What's
+     configurable" above). Only pass them when the user explicitly asks for
+     a hard rest timer or a shorter Guide list over per-set data.
 4. Tell the user the sessions will appear on the watch after their phone's
    next normal Suunto app sync — no manual pinning needed in testing. If one
    doesn't show up, they can open the Suunto app > their watch > SuuntoPlus
@@ -225,6 +259,15 @@ when present) plus `PROGRAM.md`'s progression rules:
 
 Plan → watch: `push_strength_guide` (see `/suunto-gym plan` above), one Guide per
 session, one watch step per set plus one per rest period.
+
+Everything below describes the default `restMode: "stopwatch"` +
+`lapGranularity: "perSet"` combo ("Watch display" → "What's configurable"
+above). If the user opted into `"countdown"` or `"perExercise"` instead,
+this lap-reconstruction logic doesn't apply the same way — `"countdown"`
+still gives per-set laps but rest no longer needs a lap press to end, and
+`"perExercise"` collapses to one lap per exercise like the old
+`push_workout_guide`, so skip step 2 below and just log against the whole
+exercise.
 
 Watch → Claude: no explicit done/skip is returned by the Guide API — only
 laps (`manualLap`) land in the synced workout's data, and they now come in a
