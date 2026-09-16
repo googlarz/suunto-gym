@@ -25,7 +25,7 @@ unified with your broader health record via
 ## Install
 
 ```bash
-git clone https://github.com/googlarz/gym-skill.git ~/.claude/skills/suunto-gym
+git clone https://github.com/googlarz/suunto-gym.git ~/.claude/skills/suunto-gym
 ```
 
 Then in Claude Code:
