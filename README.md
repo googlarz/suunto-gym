@@ -1,4 +1,4 @@
-# Gym Skill
+# Suunto Gym Skill
 
 A Claude Code skill that plans real strength-training programs and pushes
 them straight to your Suunto watch. It adapts on two axes: before training,
@@ -25,30 +25,30 @@ unified with your broader health record via
 ## Install
 
 ```bash
-git clone https://github.com/googlarz/gym-skill.git ~/.claude/skills/gym
+git clone https://github.com/googlarz/gym-skill.git ~/.claude/skills/suunto-gym
 ```
 
 Then in Claude Code:
 
 ```
-/gym setup
+/suunto-gym setup
 ```
 
 ## Commands
 
 | Command | What it does |
 |---------|-------------|
-| `/gym setup` | Interviews you once (goal, equipment, experience, injuries not already in health-skill), writes a real Upper/Mid/Legs program |
-| `/gym plan` | Refreshes the week and pushes all three sessions to your watch |
-| `/gym today` | Checks your recovery, gates intensity if it's poor, shows today's session |
-| `/gym log` | Logs what happened including RPE, detects PRs, flags recurring pain to health-skill instead of guessing at it |
-| `/gym review` | Weekly progression check — which lifts are moving, which stalled, next week's adjustment |
+| `/suunto-gym setup` | Interviews you once (goal, equipment, experience, injuries not already in health-skill), writes a real Upper/Mid/Legs program |
+| `/suunto-gym plan` | Refreshes the week and pushes all three sessions to your watch |
+| `/suunto-gym today` | Checks your recovery, gates intensity if it's poor, shows today's session |
+| `/suunto-gym log` | Logs what happened including RPE, detects PRs, flags recurring pain to health-skill instead of guessing at it |
+| `/suunto-gym review` | Weekly progression check — which lifts are moving, which stalled, next week's adjustment |
 
 ## Dashboard
 
-A demo of what a `/gym dashboard` command would show once real data exists.
+A demo of what a `/suunto-gym dashboard` command would show once real data exists.
 Sample data throughout, clearly marked — not yet a real command, needs
-`/gym setup` to have actually run first.
+`/suunto-gym setup` to have actually run first.
 
 **Up next** leads with today's session and the recovery-gate decision,
 **logged** sessions show deviations (swaps, skips) inline instead of burying
@@ -67,7 +67,7 @@ Plan → watch is a real, working loop through the SuuntoPlus Guide API — see
 suunto-mcp's `push_workout_guide` docs for exactly how, and its one honest
 limitation (no live push; delivery rides your phone's normal Suunto sync).
 Watch → Claude comes back via lap timestamps in the synced workout, which
-`/gym log` cross-checks against what was planned.
+`/suunto-gym log` cross-checks against what was planned.
 
 ## Boundaries
 

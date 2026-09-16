@@ -1,5 +1,5 @@
 ---
-name: gym
+name: suunto-gym
 description: >
   Personalized strength-training coach. Generates specific progressive-overload
   programs and adapts them on two axes: BEFORE training, using Suunto recovery
@@ -14,7 +14,7 @@ description: >
   health-skill triage.
 ---
 
-# Gym
+# Suunto Gym
 
 Specialized strength coach layered on top of the `health-skill` person workspace.
 It does NOT duplicate health-skill's generic workout-plan generator — it reuses
@@ -25,11 +25,11 @@ programming health-skill doesn't do, plus Suunto recovery gating.
 
 Two separate axes, don't conflate them:
 
-- **Before training** (`/gym today`): Suunto recovery data (HRV, sleep) gates
+- **Before training** (`/suunto-gym today`): Suunto recovery data (HRV, sleep) gates
   *intensity for today's session only*. It never changes `PROGRAM.md` itself
   — a bad-recovery day means "do 70% of today's plan," not "the program is
   wrong."
-- **After training** (`/gym log` → `/gym review`): actual performance —
+- **After training** (`/suunto-gym log` → `/suunto-gym review`): actual performance —
   weight/reps hit, RPE if given, PRs, and lap-inferred completion from the
   watch — is what drives real programming changes: progress, hold, or
   deload per lift, written back into `PROGRAM.md`. This is the loop that
@@ -64,7 +64,7 @@ reimplement. `PROGRAM.md` is where the actual exercise-by-exercise programming
 lives, because health-skill's built-in generator (`workout-plan`) round-robins
 a fixed ~40-exercise bank and isn't specific enough for real strength work.
 
-## First run — `/gym setup`
+## First run — `/suunto-gym setup`
 
 1. Find the health-skill root. Look for an existing person folder under
    `~/Documents/Projects/Health/` (or wherever the user already keeps it —
@@ -100,10 +100,10 @@ a fixed ~40-exercise bank and isn't specific enough for real strength work.
      --equipment "<list>" --injuries "<list>"
    ```
    `PROGRAM.md` stays the actual source of truth Claude follows session to session.
-6. Push all three sessions to the watch (see `/gym plan` below) so they're
+6. Push all three sessions to the watch (see `/suunto-gym plan` below) so they're
    ready immediately.
 
-## `/gym plan` — weekly refresh, pushes to watch
+## `/suunto-gym plan` — weekly refresh, pushes to watch
 
 Run whenever the mesocycle's next week changes (new working weights after
 progression, a deload, an exercise swap).
@@ -125,7 +125,7 @@ progression, a deload, an exercise swap).
    doesn't show up, they can open the Suunto app > their watch > SuuntoPlus
    Guides and pin it manually there.
 
-## `/gym today`
+## `/suunto-gym today`
 
 1. Pull recovery signal via the suunto MCP tools: `get_recovery` and `get_sleep`
    for yesterday/today.
@@ -139,10 +139,10 @@ progression, a deload, an exercise swap).
 4. If the user says an exercise/machine/rack isn't available (gym's busy,
    traveling, home setup missing something): substitute a same-muscle-group
    alternative on the spot — don't just drop the exercise. Log the swap in
-   `plan-week.md` for that session so `/gym review` sees what was actually
+   `plan-week.md` for that session so `/suunto-gym review` sees what was actually
    trained, not the original plan.
 
-## `/gym log`
+## `/suunto-gym log`
 
 1. Ask what happened if not already given. If the user gives weights/reps
    without an effort rating, ask how hard the last set felt (RPE 1-10, or
@@ -165,7 +165,7 @@ progression, a deload, an exercise swap).
    precaution, but say explicitly that persistent pain should go to a
    professional — don't diagnose it.
 
-## `/gym review`
+## `/suunto-gym review`
 
 Weekly. Read the logged workouts (`run-summary` for cardio trend deltas;
 scan `HEALTH_PROFILE.json` workouts for lifts, including `rpe` per exercise
@@ -184,10 +184,10 @@ when present) plus `PROGRAM.md`'s progression rules:
 
 ## Watch sync
 
-Plan → watch: `push_workout_guide` (see `/gym plan` above), one Guide per
+Plan → watch: `push_workout_guide` (see `/suunto-gym plan` above), one Guide per
 session. Watch → Claude: no explicit done/skip is returned by the Guide API —
 only lap-button presses (`manualLap`), one per exercise step, land in the
-synced workout's data. `/gym log` cross-checks the lap count/timing against
+synced workout's data. `/suunto-gym log` cross-checks the lap count/timing against
 that session's `plan-week.md` to infer what was actually completed; ask the
 user to confirm rather than assuming a lap always means "done as written."
 
