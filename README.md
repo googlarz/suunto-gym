@@ -39,8 +39,8 @@ Then in Claude Code:
 
 | Command | What it does |
 |---------|-------------|
-| `/suunto-gym setup` | Interviews you once (goal, equipment, experience, injuries not already in health-skill), writes a real Upper/Mid/Legs program |
-| `/suunto-gym plan` | Refreshes the week and pushes all three sessions to your watch |
+| `/suunto-gym setup` | Interviews you once (goal, equipment, experience, injuries not already in health-skill), writes a real split program |
+| `/suunto-gym plan` | Refreshes the week and pushes every session in the split to your watch |
 | `/suunto-gym today` | Checks your recovery, gates intensity if it's poor, shows today's session |
 | `/suunto-gym log` | Logs what happened including RPE, detects PRs, flags recurring pain to health-skill instead of guessing at it |
 | `/suunto-gym review` | Weekly progression check — which lifts are moving, which stalled, next week's adjustment |

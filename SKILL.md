@@ -38,11 +38,33 @@ Two separate axes, don't conflate them:
 
 ## Split
 
-Three sessions per week: **Upper**, **Mid** (core/posterior chain/accessories),
-**Legs** — not day-of-week labels. 12–16 exercises per session. User picks
-which one to do on a given day; the watch Guide list is titled by split name
-("UPPER", "MID", "LEGS"), not Mon/Wed/Fri, since which day maps to which
-session varies week to week.
+The split lives in `PROGRAM.md`'s frontmatter — read it there, don't assume
+one. (Current mesocycle: 6-day PPL — PUSH A/B, PULL A/B, LEGS A/B, weekly
+order in the frontmatter, Sun rest.) Watch Guides are titled by session name
+from `PROGRAM.md` (e.g. "PUSH A"), never by day-of-week.
+
+## Watch-safe exercise names
+
+`push_strength_guide`'s set step shows the exercise name and the set detail
+(`"60kg 3x10"`) as two separate text fields, side by side on a small screen.
+The tool hard-truncates each at 54 characters, but that's a last-resort
+safety cap, not a target — a name that gets cut there is cut mid-word, and
+two long fields shown together push each other off screen before either
+field limit is even reached. Write names and details watch-safe at the
+source, in `PROGRAM.md` and `plan-week.md`, so nothing downstream ever
+relies on the truncation:
+
+- Exercise name: aim for **≤24 characters**. Abbreviate consistently — `BB`
+  (barbell), `DB` (dumbbell), `15°` not "15 degrees", drop redundant words
+  ("Bench Press 15°" not "Incline Barbell Bench Press at 15 Degrees").
+- Detail string: aim for **≤16 characters** — `"60kg 3x10"`, `"bw 3x12/leg"`,
+  not a sentence.
+- Same budget applies to the rest step's "Next: <name>" / "Next set" text
+  and the `notification` text `push_strength_guide` sends on each set.
+- If a name can't be shortened without losing what it means (e.g.
+  distinguishing two grip variants), shorten it anyway and keep the full
+  name only in `PROGRAM.md`'s prose notes — the watch never needs the long
+  form, only Claude reading `PROGRAM.md` does.
 
 ## Data model
 
@@ -54,8 +76,8 @@ Everything lives inside the user's health-skill person folder:
 ├── workouts[], personal_records[], workout_plans[]   # inside HEALTH_PROFILE.json,
 │                                                        written via care_workspace.py
 └── gym/
-    ├── PROGRAM.md              # current mesocycle: Upper/Mid/Legs, exercises/sets/reps/kg — source of truth
-    └── plan-week.md            # this week's 3 sessions: display text plus the sets/restSec
+    ├── PROGRAM.md              # current mesocycle: split per frontmatter, exercises/sets/reps/kg — source of truth
+    └── plan-week.md            # this week's sessions: display text plus the sets/restSec
                                  # breakdown per exercise pushed to the watch
 ```
 
@@ -82,10 +104,11 @@ a fixed ~40-exercise bank and isn't specific enough for real strength work.
    - Equipment: full gym / home / specific machines
    - Experience level, known working weights or 1RMs for main lifts
    - Injuries not already in HEALTH_PROFILE.json
-4. Write `gym/PROGRAM.md` — a real mesocycle (4-8 weeks), three sessions
-   (Upper / Mid / Legs), 12-16 exercises each, with starting weights, sets,
+4. Write `gym/PROGRAM.md` — a real mesocycle (4-8 weeks), sessions per the
+   split agreed in the interview, with starting weights, sets,
    reps, and a progression rule per lift (e.g. "+2.5kg when all sets hit top
-   of rep range for 2 sessions running"). Before finalizing any exercise,
+   of rep range for 2 sessions running"). Name exercises watch-safe from the
+   start — see "Watch-safe exercise names" below. Before finalizing any exercise,
    cross-check it against the injuries/conditions in `HEALTH_PROFILE.json`
    using the same broad categories health-skill's own exercise bank uses
    (shoulder, lower back, knee, etc. — see `contra` fields in
@@ -101,7 +124,7 @@ a fixed ~40-exercise bank and isn't specific enough for real strength work.
      --equipment "<list>" --injuries "<list>"
    ```
    `PROGRAM.md` stays the actual source of truth Claude follows session to session.
-6. Push all three sessions to the watch (see `/suunto-gym plan` below) so they're
+6. Push all sessions in the split to the watch (see `/suunto-gym plan` below) so they're
    ready immediately.
 
 ## `/suunto-gym plan` — weekly refresh, pushes to watch
@@ -109,17 +132,19 @@ a fixed ~40-exercise bank and isn't specific enough for real strength work.
 Run whenever the mesocycle's next week changes (new working weights after
 progression, a deload, an exercise swap).
 
-1. Update `PROGRAM.md` with the new numbers/exercises for all three sessions.
+1. Update `PROGRAM.md` with the new numbers/exercises for all sessions in the split.
 2. Write `gym/plan-week.md` with, per exercise per session: the display text
    (e.g. `Bench Press 15° — 60kg 3x10`) plus the structured `sets` count and
-   `restSec` between sets. The display text is short and unambiguous; `sets`/
-   `restSec` are what let the watch build one step per set and one step per
-   rest period.
-3. Call `push_strength_guide` **three times**, once per session, each as its
+   `restSec` between sets. Keep the name and the `"60kg 3x10"`-style detail
+   within the watch-safe budget ("Watch-safe exercise names" above) — this
+   is the text that actually lands on screen, so don't let it drift long
+   over a mesocycle. `sets`/`restSec` are what let the watch build one step
+   per set and one step per rest period.
+3. Call `push_strength_guide` once per session in the split, each as its
    own Guide:
-   - title: `"UPPER"`, `"MID"`, `"LEGS"` (plain, so they're distinguishable
-     at a glance in the watch's Guide list — no day names)
-   - date: today's date for all three (they're not day-locked; the user picks
+   - title: the session name from `PROGRAM.md` (e.g. `"PUSH A"`) — plain, so
+     they're distinguishable at a glance in the watch's Guide list, no day names
+   - date: today's date for all of them (they're not day-locked; the user picks
      which one to do)
    - exercises: the list from `plan-week.md` for that session, `{name, detail,
      sets, restSec}` — `detail` is the pre-formatted `"60kg 3x10"` style
@@ -144,7 +169,11 @@ progression, a deload, an exercise swap).
    - Normal or good recovery → run the session in `PROGRAM.md` as planned.
 3. Show today's session: exercise, sets×reps, target weight (last logged weight
    + progression rule if criteria met, otherwise same weight).
-4. If the user says an exercise/machine/rack isn't available (gym's busy,
+4. Include the session's warmup and cool-down from `gym/warmup-cooldown.md`
+   (keyed by session name), plus its standing BP gate line. If the user wants
+   it on their phone ("wyślij na Signala"), send the session + warmup/cooldown
+   via the signal MCP's `send_note_to_self`.
+5. If the user says an exercise/machine/rack isn't available (gym's busy,
    traveling, home setup missing something): substitute a same-muscle-group
    alternative on the spot — don't just drop the exercise. Log the swap in
    `plan-week.md` for that session so `/suunto-gym review` sees what was actually
