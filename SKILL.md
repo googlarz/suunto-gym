@@ -47,16 +47,24 @@ varies week to week.
 ## Watch display
 
 `push_strength_guide` lays out every step to use the watch's small screen
-optimally — 3 fields per step (well under the 4-5 the schema supports, and
-inside the "fewer fields when intense" guidance for something you're
-glancing at mid-lift), ordered by priority (the schema gives the first
-field the best placement/biggest size):
+optimally — 3 fields on the steps you glance at mid-lift, 4 on the calm
+prep step (all inside the 4-5 the schema supports), ordered by priority (the
+schema gives the first field the best placement/biggest size). Numbers
+(timers, HR) get the big slots; text is cropped first if the screen is
+tight. Live heart rate is on every step.
 
-- **Set step**: exercise name → target (`"60kg 3x10"`) → live heart rate.
+Session flow: prep → set → rest → set → … → last set → prep → set → … → done.
+
+- **Prep** (before every exercise, including the very first): count-up
+  stopwatch → HR → weight/sets (`"60kg 3x10"`) → exercise name; title is
+  the exercise counter (`4/7`). This is the time to walk to the station and
+  set up the weight, and HR tells you how long to take — so it's always a
+  self-paced stopwatch, never a countdown. A lap press starts the exercise.
+- **Set**: exercise name → target → HR; title is the set counter (`2/3`).
   What to do comes first; HR is a glance, not the thing being acted on.
-- **Rest step**: stopwatch or countdown (see below) → live heart rate →
-  target rest + what's next as text (lowest priority — gets cropped first
-  if the screen is tight, which is fine since it's the least critical part).
+- **Rest between sets**: countdown (see below) → HR → `Next: set 3/3`;
+  title is the same set counter (`2/3` = rest after set 2), so you always
+  know where you are in the exercise.
 
 ### Text budget
 
@@ -72,8 +80,9 @@ downstream ever relies on the truncation:
   ("Bench Press 15°" not "Incline Barbell Bench Press at 15 Degrees").
 - Detail string: aim for **≤16 characters** — `"60kg 3x10"`, `"bw 3x12/leg"`,
   not a sentence.
-- Same budget applies to the rest step's "Next: <name>" / "Next set" text
-  and the `notification` text `push_strength_guide` sends on each set.
+- Same budget applies wherever those strings reappear: the prep screen
+  before each exercise and the `notification` text `push_strength_guide`
+  sends on each set.
 - If a name can't be shortened without losing what it means (e.g.
   distinguishing two grip variants), shorten it anyway and keep the full
   name only in `PROGRAM.md`'s prose notes — the watch never needs the long
@@ -85,21 +94,21 @@ downstream ever relies on the truncation:
 `/suunto-gym plan` step 3. Defaults are the recommended choice for most
 users — only override when the user explicitly asks:
 
-- **`restMode`** — `"stopwatch"` (default, recommended): rest counts up,
-  advances on a lap press, the user paces it themselves by feel/HR, not a
-  clock. `"countdown"`: rest counts down from `restSec` and auto-advances
-  on its own, no lap needed — offer this if the user wants a hard timer
-  instead of self-pacing.
+- **`restMode`** (rest *between sets* only — the prep before and between
+  exercises is always a stopwatch) — `"countdown"` (default): counts down
+  from `restSec` and auto-advances into the next set with a vibration,
+  hands-free. `"stopwatch"`: counts up and advances on a lap press — offer
+  this if the user wants to pace set-to-set rest by feel/HR too.
 - **`lapGranularity`** — `"perSet"` (default, **recommended for AI
   analysis**): one step per set plus one per rest, so laps bound every
   individual set and rest — this is what makes per-set HR/duration readable
   from the synced workout at all, and what `/suunto-gym log`'s lap
-  cross-check (below) depends on. `"perExercise"`: one step per whole
-  exercise instead (all sets folded into the `detail` string, e.g.
-  `"60kg 3x10"`), like `push_workout_guide` — a shorter Guide list to
-  scroll through, but only one lap per exercise, so per-set analysis is
-  lost. Offer this only if the user explicitly prioritizes a shorter list
-  over per-set data.
+  cross-check (below) depends on. `"perExercise"`: prep plus one step per
+  whole exercise instead (all sets folded into the `detail` string, e.g.
+  `"60kg 3x10"`), no between-set rests (so `restMode` doesn't apply), like
+  `push_workout_guide` — a shorter Guide list to scroll through, but only
+  one lap per exercise, so per-set analysis is lost. Offer this only if the
+  user explicitly prioritizes a shorter list over per-set data.
 
 ## Data model
 
@@ -172,9 +181,11 @@ progression, a deload, an exercise swap).
    (e.g. `Bench Press 15° — 60kg 3x10`) plus the structured `sets` count and
    `restSec` between sets. Keep the name and the `"60kg 3x10"`-style detail
    within the watch-safe budget ("Watch display" → "Text budget" above) —
-   this is the text that actually lands on screen, so don't let it drift
-   long over a mesocycle. `sets`/`restSec` are what let the watch build one
-   step per set and one step per rest period.
+   this is the text that actually lands on screen (on set steps and on the
+   prep screen before each exercise, where you check the weight while
+   walking to the station), so don't let it drift long over a mesocycle.
+   `sets`/`restSec` are what let the watch build one step per set and one
+   rest step between sets.
 3. Call `push_strength_guide` once per session in the split, each as its
    own Guide:
    - title: the session name from `PROGRAM.md` (e.g. `"PUSH A"`) — plain, so
@@ -183,12 +194,15 @@ progression, a deload, an exercise swap).
      which one to do)
    - exercises: the list from `plan-week.md` for that session, `{name, detail,
      sets, restSec}` — `detail` is the pre-formatted `"60kg 3x10"` style
-     string, `sets` is the number of sets, `restSec` is the target rest
-     between sets in seconds (shown as a label, not enforced by default).
+     string (weight and sets — it's shown on the prep screen too), `sets` is
+     the number of sets, `restSec` is the rest between sets in seconds (the
+     countdown length; not used between exercises, where the prep stopwatch
+     is self-paced).
    - `restMode`/`lapGranularity`: omit both to get the recommended defaults
-     (stopwatch rest, one lap per set — see "Watch display" → "What's
-     configurable" above). Only pass them when the user explicitly asks for
-     a hard rest timer or a shorter Guide list over per-set data.
+     (countdown rest between sets, one lap per set — see "Watch display" →
+     "What's configurable" above). Only pass them when the user explicitly
+     asks for a self-paced stopwatch between sets or a shorter Guide list
+     over per-set data.
 4. Tell the user the sessions will appear on the watch after their phone's
    next normal Suunto app sync — no manual pinning needed in testing. If one
    doesn't show up, they can open the Suunto app > their watch > SuuntoPlus
@@ -258,41 +272,40 @@ when present) plus `PROGRAM.md`'s progression rules:
 ## Watch sync
 
 Plan → watch: `push_strength_guide` (see `/suunto-gym plan` above), one Guide per
-session, one watch step per set plus one per rest period.
+session: a prep stopwatch before each exercise, then one watch step per set
+with a rest step between sets.
 
-Everything below describes the default `restMode: "stopwatch"` +
+Everything below describes the default `restMode: "countdown"` +
 `lapGranularity: "perSet"` combo ("Watch display" → "What's configurable"
-above). If the user opted into `"countdown"` or `"perExercise"` instead,
-this lap-reconstruction logic doesn't apply the same way — `"countdown"`
-still gives per-set laps but rest no longer needs a lap press to end, and
-`"perExercise"` collapses to one lap per exercise like the old
-`push_workout_guide`, so skip step 2 below and just log against the whole
-exercise.
+above). With `restMode: "stopwatch"` the lap pattern is identical — the
+rest-end lap just comes from the user's press instead of automatically. With
+`"perExercise"` there's only one lap for the prep and one for the exercise,
+so skip step 2 below and just log against the whole exercise.
 
 Watch → Claude: no explicit done/skip is returned by the Guide API — only
-laps (`manualLap`) land in the synced workout's data, and they now come in a
-per-set pattern, not one per exercise. Both set and rest steps advance on a
-lap-button press — nothing auto-advances — and each press is itself logged
-as a lap by the watch, so:
-- The lap-press that ends a set marks set-end/rest-start (rest starts as a
-  live count-up stopwatch, not a countdown, so the user paces it themselves).
-- The lap-press that ends that rest marks rest-end/next-set-start.
-- Net: one lap at every set/rest boundary, alternating set-end and rest-end
-  laps through the whole session.
+laps land in the synced workout's data, and every prep, set and rest is its
+own lap:
+- Prep ends on a lap press (the user is set up) → marks prep-end/set-1-start.
+- A set ends on a lap press (the reps are done) → marks set-end/rest-start,
+  or, after an exercise's last set, set-end/next-prep-start.
+- A countdown rest ends on its own, and the next set step logs an automatic
+  lap the instant it begins → marks rest-end/set-start.
+- Net: an exercise with N sets is 2N laps in order — prep, set 1, rest 1,
+  set 2, …, rest N−1, set N.
 
 `/suunto-gym log` reconstructs what happened from this stream:
-1. Group the synced workout's laps by exercise, using each exercise's `sets`
-   count from that session's `plan-week.md` to know how many set/rest lap
-   pairs to expect.
-2. Within each exercise's group, laps alternate set-end and rest-end
-   (set 1 ends → rest starts → rest ends → set 2 starts → ...) — pair them
-   up in that order to reconstruct actual per-set and per-rest duration, and
-   use `get_workout_fit`'s HR samples windowed by lap timestamps to read
-   per-set effort and per-rest recovery.
-3. If the lap count for an exercise doesn't cleanly divide into the expected
-   set/rest pairs (skipped exercise, extra laps, watch not synced mid-session),
-   don't guess — ask the user to confirm what was actually done for that
-   exercise rather than assuming the lap stream matches the plan.
+1. Group the synced workout's laps by exercise in plan order, consuming
+   2 × `sets` laps per exercise (from that session's `plan-week.md`).
+2. Within each exercise's group, the first lap is the prep (walk to the
+   station and set up the weight — its duration and the HR during it show
+   how much rest the user took between exercises), then set and rest
+   alternate — pair them up in that order to reconstruct actual per-set and
+   per-rest duration, and use `get_workout_fit`'s HR samples windowed by lap
+   timestamps to read per-set effort and per-rest recovery.
+3. If the lap count for an exercise doesn't come to 2 × `sets` (skipped
+   exercise, extra laps, watch not synced mid-session), don't guess — ask
+   the user to confirm what was actually done for that exercise rather than
+   assuming the lap stream matches the plan.
 
 ## Boundaries
 
