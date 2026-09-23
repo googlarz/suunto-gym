@@ -88,6 +88,30 @@ downstream ever relies on the truncation:
   name only in `PROGRAM.md`'s prose notes — the watch never needs the long
   form, only Claude reading `PROGRAM.md` does.
 
+### Plate math (prep screen)
+
+For barbell exercises, compute the per-side plate breakdown and pass it as
+`plates` per exercise (e.g. `"2x20+1x5/side"`) — `push_strength_guide` shows
+it on the prep screen *instead of* `detail`, since prep is the moment the
+bar actually gets loaded, not mid-set. Leave `plates` unset for anything
+that isn't a loaded barbell (dumbbell, machine, cable, bodyweight) — prep
+falls back to `detail` automatically, no extra handling needed on your end.
+
+- Bar weight: default 20kg (standard Olympic barbell) unless the user's
+  said otherwise during `/suunto-gym setup` (women's bar ~15kg, EZ bar
+  ~10kg, fixed-weight bars, etc.) — note a non-default bar in `PROGRAM.md`
+  once so it doesn't need re-asking every plan refresh.
+- Available plates: default a standard commercial set — 25/20/15/10/5/2.5/
+  1.25kg per side — unless the equipment interview described a different
+  home setup.
+- Math: `(target weight − bar weight) / 2` per side, greedily filled with
+  the largest plates that fit. Compact format only: `"2x20+1x5/side"`, not
+  a sentence. Omit `plates` entirely for a bar-only lift (remainder is 0).
+- If the exact target can't be hit with the available plates, round to what
+  actually can be loaded and say so in one line when writing the plan —
+  don't silently report a number that isn't achievable on the equipment
+  described.
+
 ### What's configurable
 
 `push_strength_guide` takes two optional params, passed through
@@ -193,11 +217,13 @@ progression, a deload, an exercise swap).
    - date: today's date for all of them (they're not day-locked; the user picks
      which one to do)
    - exercises: the list from `plan-week.md` for that session, `{name, detail,
-     sets, restSec}` — `detail` is the pre-formatted `"60kg 3x10"` style
-     string (weight and sets — it's shown on the prep screen too), `sets` is
-     the number of sets, `restSec` is the rest between sets in seconds (the
-     countdown length; not used between exercises, where the prep stopwatch
-     is self-paced).
+     sets, restSec, plates?}` — `detail` is the pre-formatted `"60kg 3x10"`
+     style string (weight and sets), `sets` is the number of sets, `restSec`
+     is the rest between sets in seconds (the countdown length; not used
+     between exercises, where the prep stopwatch is self-paced), `plates`
+     is the per-side breakdown for barbell exercises (see "Watch display" →
+     "Plate math" above) — when given, it replaces `detail` on the prep
+     screen only; set steps always show `detail`.
    - `restMode`/`lapGranularity`: omit both to get the recommended defaults
      (countdown rest between sets, one lap per set — see "Watch display" →
      "What's configurable" above). Only pass them when the user explicitly
@@ -262,7 +288,20 @@ when present) plus `PROGRAM.md`'s progression rules:
   reps hit + RPE ≤7 → progress. Reps hit but RPE 9-10 (grinding) → hold, even
   though the rep target was technically met. Reps missed → hold or regress.
   No RPE logged → fall back to reps-only (the old rule still applies).
-- Volume trend (sets per muscle group per week)
+- **Muscle-group balance**: bucket every exercise trained this week into a
+  primary muscle group — chest, back, shoulders, legs, glutes, arms, core —
+  using judgment (there's no fixed exercise-name lookup to maintain; you
+  already know "Bench Press 15°" is chest and "DB Row" is back). Tally
+  logged sets per group for the week, compare against the prior week's
+  tally and against what `PROGRAM.md`'s split intends (a push/pull/legs
+  split should roughly balance push vs. pull volume; an upper/lower split
+  shouldn't have upper at 3x the sets of lower, etc.). Flag a group that's
+  clearly underserved relative to the program's own intent or has trended
+  down 2+ weeks running — that's a real gap, not just a snapshot ("push
+  volume dropped from 18 to 9 sets these last two weeks; overhead press
+  swaps ate into shoulder volume"). Don't flag anything from a single
+  week's noise or a program that's intentionally imbalanced (e.g. a
+  bodybuilding split isolating one group this block on purpose).
 - Suunto recovery trend for the week (average HRV/sleep vs. prior week) —
   for context on *why* a lift stalled, not as the progression trigger itself
   (that's performance data's job; recovery data's job is the daily gate)
