@@ -333,17 +333,27 @@ own lap:
   set 2, …, rest N−1, set N.
 
 `/suunto-gym log` reconstructs what happened from this stream:
-1. Group the synced workout's laps by exercise in plan order, consuming
-   2 × `sets` laps per exercise (from that session's `plan-week.md`).
+0. Get the lap table with suunto-mcp's `get_workout_laps` (workoutKey from
+   `list_workouts`). Each row already carries `durationS`, `hrAvg`/`hrMax`/
+   `hrMin`, a `kind` (`rest`, `done`, `step`) and the `label` — the text of
+   the watch step that was active. Don't use `get_workout_fit` for this: it
+   returns only a lap *count*, no per-lap data, and nothing windows HR by
+   lap for you.
+1. Group the laps by exercise in plan order, consuming 2 × `sets` laps per
+   exercise (from that session's `plan-week.md`). The session ends with one
+   extra `done` lap ("Session complete"), so a `perSet` workout has
+   2 × (total sets) + 1 laps.
 2. Within each exercise's group, the first lap is the prep (walk to the
-   station and set up the weight — its duration and the HR during it show
-   how much rest the user took between exercises), then set and rest
-   alternate — pair them up in that order to reconstruct actual per-set and
-   per-rest duration, and use `get_workout_fit`'s HR samples windowed by lap
-   timestamps to read per-set effort and per-rest recovery.
+   station and set up the weight — its duration and HR show how much rest
+   the user took between exercises), then set and rest alternate. A prep
+   lap and a set lap have look-alike labels (`<name> | <detail>`), so tell
+   them apart by position, not text; `kind: "rest"` (label `Next: set k/S`)
+   marks the rests. Pair them in order to get per-set and per-rest duration
+   and, from `hrAvg`/`hrMax`, per-set effort and per-rest recovery.
 3. If the lap count for an exercise doesn't come to 2 × `sets` (skipped
-   exercise, extra laps, watch not synced mid-session), don't guess — ask
-   the user to confirm what was actually done for that exercise rather than
+   exercise, repeated or missing rest laps, watch not synced mid-session),
+   check the labels rather than only counting, and don't guess — ask the
+   user to confirm what was actually done for that exercise rather than
    assuming the lap stream matches the plan.
 
 ## Boundaries
