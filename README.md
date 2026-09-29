@@ -17,8 +17,10 @@ unified with your broader health record via
 
 - [suunto-mcp](https://github.com/googlarz/suunto-mcp) — connects your Suunto
   watch to Claude, and provides `push_strength_guide` (puts your plan on your
-  wrist, one watch step per set plus rest) and `get_recovery`/`get_sleep`
-  (the recovery-gating data)
+  wrist, one watch step per set plus rest), `get_workout_laps` (reads
+  per-set/per-rest HR and duration back after the session) and
+  `get_recovery`/`get_sleep` (the recovery-gating data). Needs the version
+  that includes `get_workout_laps` (0.15.1 or newer)
 - [health-skill](https://github.com/googlarz/health-skill) — the person
   workspace this skill stores its data in, so training stays unified with
   injuries, conditions, and the rest of your health record
